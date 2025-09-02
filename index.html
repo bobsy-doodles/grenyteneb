@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">📍 Location Tracker</h1>
+            <p class="text-gray-600">Discover your current location with precision</p>
+        </div>
+
+        <!-- Main Card -->
+        <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+            <!-- Status Bar -->
+            <div id="statusBar" class="bg-blue-600 text-white px-6 py-4">
+                <div class="flex items-center justify-center">
+                    <div id="statusIcon" class="mr-3">🔍</div>
+                    <span id="statusText" class="font-medium">Ready to track your location</span>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="p-8">
+                <!-- Get Location Button -->
+                <div id="getLocationSection" class="text-center mb-8">
+                    <button id="getLocationBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        🎯 Get My Location
+                    </button>
+                    <p class="text-sm text-gray-500 mt-3">Click to allow location access and see your coordinates</p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loadingSection" class="hidden text-center mb-8">
+                    <div class="loading-spinner mx-auto mb-4"></div>
+                    <p class="text-gray-600">Locating you...</p>
+                </div>
+
+                <!-- Location Results -->
+                <div id="locationResults" class="hidden">
+                    <!-- Current Location -->
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 mb-6 border border-green-200">
+                        <div class="flex items-center mb-4">
+                            <div class="pulse-dot bg-green-500 w-3 h-3 rounded-full mr-3"></div>
+                            <h3 class="text-lg font-semibold text-gray-800">Current Location</h3>
+                        </div>
+                        
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="bg-white rounded-lg p-4 shadow-sm">
+                                <div class="text-sm text-gray-500 mb-1">Latitude</div>
+                                <div id="latitude" class="text-lg font-mono text-gray-800">--</div>
+                            </div>
+                            <div class="bg-white rounded-lg p-4 shadow-sm">
+                                <div class="text-sm text-gray-500 mb-1">Longitude</div>
+                                <div id="longitude" class="text-lg font-mono text-gray-800">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Info -->
+                    <div class="grid md:grid-cols-2 gap-4 mb-6">
+                        <div class="bg-gray-50 rounded-xl p-4">
+                            <div class="text-sm text-gray-500 mb-1">Accuracy</div>
+                            <div id="accuracy" class="text-lg font-semibold text-gray-800">-- meters</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-4">
+                            <div class="text-sm text-gray-500 mb-1">Timestamp</div>
+                            <div id="timestamp" class="text-lg font-semibold text-gray-800">--</div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap gap-3 justify-center">
+                        <button id="refreshBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200">
+                            🔄 Refresh Location
+                        </button>
+                        <button id="copyBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200">
+                            📋 Copy Coordinates
+                        </button>
+                        <button id="mapsBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200">
+                            🗺️ View on Maps
+                        </button>
+                        <button id="saveBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200">
+                            💾 Save Location
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Location History -->
+                <div id="historySection" class="mt-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">📚 Location History</h3>
+                        <div class="flex gap-2">
+                            <button id="clearHistoryBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                🗑️ Clear All
+                            </button>
+                            <button id="exportBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                📤 Export
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="historyList" class="space-y-3">
+                        <div id="noHistory" class="text-center py-8 text-gray-500">
+                            <div class="text-4xl mb-2">📍</div>
+                            <p>No saved locations yet. Save your first location to start building your history!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error State -->
+                <div id="errorSection" class="hidden text-center">
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-6">
+                        <div class="text-red-600 text-4xl mb-3">⚠️</div>
+                        <h3 class="text-lg font-semibold text-red-800 mb-2">Location Access Denied</h3>
+                        <p id="errorMessage" class="text-red-600 mb-4">Unable to access your location. Please check your browser settings.</p>
+                        <button id="retryBtn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200">
+                            🔄 Try Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Footer -->
+        <div class="max-w-2xl mx-auto mt-8 text-center">
+            <div class="bg-white rounded-xl p-6 shadow-lg">
+                <h4 class="font-semibold text-gray-800 mb-2">🔒 Privacy Notice</h4>
+                <p class="text-sm text-gray-600">Your location data is only displayed in your browser and is not stored or transmitted anywhere. This tracker respects your privacy.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class LocationTracker {
+            constructor() {
+                this.initializeElements();
+                this.bindEvents();
+            }
+
+            initializeElements() {
+                this.elements = {
+                    getLocationBtn: document.getElementById('getLocationBtn'),
+                    refreshBtn: document.getElementById('refreshBtn'),
+                    copyBtn: document.getElementById('copyBtn'),
+                    mapsBtn: document.getElementById('mapsBtn'),
+                    retryBtn: document.getElementById('retryBtn'),
+                    saveBtn: document.getElementById('saveBtn'),
+                    clearHistoryBtn: document.getElementById('clearHistoryBtn'),
+                    exportBtn: document.getElementById('exportBtn'),
+                    
+                    getLocationSection: document.getElementById('getLocationSection'),
+                    loadingSection: document.getElementById('loadingSection'),
+                    locationResults: document.getElementById('locationResults'),
+                    errorSection: document.getElementById('errorSection'),
+                    historySection: document.getElementById('historySection'),
+                    
+                    statusBar: document.getElementById('statusBar'),
+                    statusIcon: document.getElementById('statusIcon'),
+                    statusText: document.getElementById('statusText'),
+                    
+                    latitude: document.getElementById('latitude'),
+                    longitude: document.getElementById('longitude'),
+                    accuracy: document.getElementById('accuracy'),
+                    timestamp: document.getElementById('timestamp'),
+                    errorMessage: document.getElementById('errorMessage'),
+                    historyList: document.getElementById('historyList'),
+                    noHistory: document.getElementById('noHistory')
+                };
+            }
+
+            bindEvents() {
+                this.elements.getLocationBtn.addEventListener('click', () => this.getCurrentLocation());
+                this.elements.refreshBtn.addEventListener('click', () => this.getCurrentLocation());
+                this.elements.copyBtn.addEventListener('click', () => this.copyCoordinates());
+                this.elements.mapsBtn.addEventListener('click', () => this.openInMaps());
+                this.elements.retryBtn.addEventListener('click', () => this.resetAndRetry());
+                this.elements.saveBtn.addEventListener('click', () => this.saveLocation());
+                this.elements.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
+                this.elements.exportBtn.addEventListener('click', () => this.exportHistory());
+                
+                // Load saved history on startup
+                this.loadHistory();
+            }
+
+            showSection(sectionName) {
+                // Hide all sections
+                this.elements.getLocationSection.classList.add('hidden');
+                this.elements.loadingSection.classList.add('hidden');
+                this.elements.locationResults.classList.add('hidden');
+                this.elements.errorSection.classList.add('hidden');
+                
+                // Show requested section
+                this.elements[sectionName].classList.remove('hidden');
+            }
+
+            updateStatus(icon, text, bgColor = 'bg-blue-600') {
+                this.elements.statusIcon.textContent = icon;
+                this.elements.statusText.textContent = text;
+                this.elements.statusBar.className = `${bgColor} text-white px-6 py-4`;
+            }
+
+            getCurrentLocation() {
+                if (!navigator.geolocation) {
+                    this.showError('Geolocation is not supported by this browser.');
+                    return;
+                }
+
+                this.showSection('loadingSection');
+                this.updateStatus('🔍', 'Locating you...', 'bg-yellow-600');
+
+                const options = {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                };
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => this.onLocationSuccess(position),
+                    (error) => this.onLocationError(error),
+                    options
+                );
+            }
+
+            onLocationSuccess(position) {
+                const { latitude, longitude, accuracy } = position.coords;
+                const timestamp = new Date(position.timestamp);
+
+                // Update display
+                this.elements.latitude.textContent = latitude.toFixed(6);
+                this.elements.longitude.textContent = longitude.toFixed(6);
+                this.elements.accuracy.textContent = `±${Math.round(accuracy)} meters`;
+                this.elements.timestamp.textContent = timestamp.toLocaleString();
+
+                // Store coordinates and position for other functions
+                this.currentCoords = { latitude, longitude };
+                this.currentPosition = position;
+
+                // Show results
+                this.showSection('locationResults');
+                this.updateStatus('✅', 'Location found successfully!', 'bg-green-600');
+            }
+
+            onLocationError(error) {
+                let message = 'Unable to retrieve your location.';
+                
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        message = 'Location access was denied. Please enable location services and try again.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message = 'Location information is unavailable. Please check your connection.';
+                        break;
+                    case error.TIMEOUT:
+                        message = 'Location request timed out. Please try again.';
+                        break;
+                }
+
+                this.showError(message);
+            }
+
+            showError(message) {
+                this.elements.errorMessage.textContent = message;
+                this.showSection('errorSection');
+                this.updateStatus('❌', 'Location access failed', 'bg-red-600');
+            }
+
+            copyCoordinates() {
+                if (!this.currentCoords) return;
+
+                const coordsText = `${this.currentCoords.latitude}, ${this.currentCoords.longitude}`;
+                
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(coordsText).then(() => {
+                        this.showTemporaryMessage('📋 Coordinates copied to clipboard!');
+                    });
+                } else {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = coordsText;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    this.showTemporaryMessage('📋 Coordinates copied to clipboard!');
+                }
+            }
+
+            openInMaps() {
+                if (!this.currentCoords) return;
+
+                const { latitude, longitude } = this.currentCoords;
+                const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+                window.open(mapsUrl, '_blank');
+            }
+
+            resetAndRetry() {
+                this.showSection('getLocationSection');
+                this.updateStatus('🔍', 'Ready to track your location', 'bg-blue-600');
+            }
+
+            showTemporaryMessage(message) {
+                const originalText = this.elements.statusText.textContent;
+                const originalIcon = this.elements.statusIcon.textContent;
+                
+                this.updateStatus('✅', message, 'bg-green-600');
+                
+                setTimeout(() => {
+                    this.elements.statusIcon.textContent = originalIcon;
+                    this.elements.statusText.textContent = originalText;
+                    this.elements.statusBar.className = 'bg-green-600 text-white px-6 py-4';
+                }, 2000);
+            }
+
+            saveLocation() {
+                if (!this.currentCoords) {
+                    this.showTemporaryMessage('❌ No location to save!');
+                    return;
+                }
+
+                const locationData = {
+                    id: Date.now(),
+                    latitude: this.currentCoords.latitude,
+                    longitude: this.currentCoords.longitude,
+                    accuracy: Math.round(this.currentPosition.coords.accuracy),
+                    timestamp: new Date().toISOString(),
+                    displayTime: new Date().toLocaleString()
+                };
+
+                // Get existing history
+                let history = JSON.parse(localStorage.getItem('locationHistory') || '[]');
+                
+                // Add new location to the beginning
+                history.unshift(locationData);
+                
+                // Keep only last 50 locations to prevent storage overflow
+                if (history.length > 50) {
+                    history = history.slice(0, 50);
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('locationHistory', JSON.stringify(history));
+                
+                // Update display
+                this.loadHistory();
+                this.showTemporaryMessage('💾 Location saved successfully!');
+            }
+
+            loadHistory() {
+                const history = JSON.parse(localStorage.getItem('locationHistory') || '[]');
+                
+                if (history.length === 0) {
+                    this.elements.noHistory.classList.remove('hidden');
+                    this.elements.historyList.innerHTML = this.elements.noHistory.outerHTML;
+                    return;
+                }
+
+                this.elements.noHistory.classList.add('hidden');
+                
+                const historyHTML = history.map(location => `
+                    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <div class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold mr-3">
+                                    📍
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-800">${location.displayTime}</div>
+                                    <div class="text-sm text-gray-500">Accuracy: ±${location.accuracy}m</div>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="locationTracker.viewLocationOnMap(${location.latitude}, ${location.longitude})" 
+                                        class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
+                                    🗺️ View
+                                </button>
+                                <button onclick="locationTracker.copyLocationCoords(${location.latitude}, ${location.longitude})" 
+                                        class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
+                                    📋 Copy
+                                </button>
+                                <button onclick="locationTracker.deleteLocation(${location.id})" 
+                                        class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors duration-200">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 text-sm">
+                            <div class="bg-gray-50 rounded-lg p-2">
+                                <div class="text-gray-500 text-xs">Latitude</div>
+                                <div class="font-mono text-gray-800">${location.latitude.toFixed(6)}</div>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-2">
+                                <div class="text-gray-500 text-xs">Longitude</div>
+                                <div class="font-mono text-gray-800">${location.longitude.toFixed(6)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                this.elements.historyList.innerHTML = historyHTML;
+            }
+
+            clearHistory() {
+                if (confirm('Are you sure you want to clear all saved locations? This cannot be undone.')) {
+                    localStorage.removeItem('locationHistory');
+                    this.loadHistory();
+                    this.showTemporaryMessage('🗑️ History cleared successfully!');
+                }
+            }
+
+            exportHistory() {
+                const history = JSON.parse(localStorage.getItem('locationHistory') || '[]');
+                
+                if (history.length === 0) {
+                    this.showTemporaryMessage('❌ No history to export!');
+                    return;
+                }
+
+                const csvContent = [
+                    'Timestamp,Latitude,Longitude,Accuracy (meters)',
+                    ...history.map(loc => `${loc.displayTime},${loc.latitude},${loc.longitude},${loc.accuracy}`)
+                ].join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `location-history-${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                this.showTemporaryMessage('📤 History exported successfully!');
+            }
+
+            viewLocationOnMap(lat, lng) {
+                const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                window.open(mapsUrl, '_blank');
+            }
+
+            copyLocationCoords(lat, lng) {
+                const coordsText = `${lat}, ${lng}`;
+                
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(coordsText).then(() => {
+                        this.showTemporaryMessage('📋 Coordinates copied!');
+                    });
+                } else {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = coordsText;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    this.showTemporaryMessage('📋 Coordinates copied!');
+                }
+            }
+
+            deleteLocation(id) {
+                if (confirm('Delete this location from your history?')) {
+                    let history = JSON.parse(localStorage.getItem('locationHistory') || '[]');
+                    history = history.filter(loc => loc.id !== id);
+                    localStorage.setItem('locationHistory', JSON.stringify(history));
+                    this.loadHistory();
+                    this.showTemporaryMessage('🗑️ Location deleted!');
+                }
+            }
+        }
+
+        // Initialize the location tracker when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.locationTracker = new LocationTracker();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'978edb092194a2e7',t:'MTc1NjgzNTQ4OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
